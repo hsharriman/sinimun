@@ -1,70 +1,68 @@
 #include <FastLED.h>
 
-//#define NUM_LEDS 20
 
-CRGB strip1[24];
-CRGB strip2[20];
-CRGB strip3[8];
-//CRGB strip4[10];
-CRGB striparray[] = {strip1, strip2, strip3};
-int num_led_array[] = {24, 20, 8};
-int num_strands = 3;
+#define NUM_LEDS_PART_A 20
+#define NUM_LEDS_PART_B 24
+#define NUM_LEDS_PART_C 20
+#define NUM_LEDS_PART_D 19
+
+#define NUM_LEDS (NUM_LEDS_PART_A + NUM_LEDS_PART_B + NUM_LEDS_PART_C + NUM_LEDS_PART_D)
+
+#define BRIGHTNESS      64
+CRGB strip1[NUM_LEDS_PART_A + NUM_LEDS_PART_B + NUM_LEDS_PART_C + NUM_LEDS_PART_D];
 
 int n;
 int i;
 bool ascent;
-int testColor[3] = {150, 60, 200};
+bool flag;
+bool doneBooping;
+
+float timeSinceLastUpdate;
+int currentIteration = 0;
 
 void setup() {
-  FastLED.addLeds<NEOPIXEL, 7>(strip1, 24);
-  FastLED.addLeds<NEOPIXEL, 8>(strip2, 20);
-  FastLED.addLeds<NEOPIXEL, 9>(strip3, 8);
-  //FastLED.addLeds<NEOPIXEL, 10>(strip4, NUM_LEDS);
-  strip1[0].setRGB(testColor[0], testColor[1], testColor[2]);
+  delay(3000);
+  FastLED.addLeds<NEOPIXEL, 7>(strip1, 0, NUM_LEDS_PART_A);
+  FastLED.addLeds<NEOPIXEL, 8>(strip1, NUM_LEDS_PART_A, NUM_LEDS_PART_B);
+  FastLED.addLeds<NEOPIXEL, 9>(strip1, NUM_LEDS_PART_B, NUM_LEDS_PART_C);
+  FastLED.addLeds<NEOPIXEL, 10>(strip1, NUM_LEDS_PART_C, NUM_LEDS_PART_D);
   Serial.begin(9600);
+  FastLED.setBrightness(BRIGHTNESS);
 
 }
 
 void loop() {
-  //  if (millis() < 7000){
-  //    if (i < NUM_LEDS){
-  //      breathe(strip1[i], 20, testColor[0], testColor[1], testColor[2]);
-  //      breathe(strip2[i], 8, testColor[0], testColor[1], testColor[2]);
-  //      breathe(strip3[i], 10, testColor[0], testColor[1], testColor[2]);
-  //      //breathe(strip4[i], 20, testColor[0], testColor[1], testColor[2]);
-  //
-  //      i++;
-  //    }
-  //    if (i == NUM_LEDS){
-  //      i = 0;
-  //    }
-  //    delay(80);
-  //    fadeToBlackBy(strip1, NUM_LEDS, 60);
-  //    fadeToBlackBy(strip2, NUM_LEDS, 80);
-  //    fadeToBlackBy(strip3, NUM_LEDS, 100);
-  //  }
-  //
-  //  else if (millis() > 7000 && millis() < 20000){
-  //    for (i = 0; i < NUM_LEDS; i++){
-  //      breatheOnOff(strip1[i], 10, 20, 20, 40, 80);
-  //      breatheOnOff(strip2[i], 10, 20, 20, 40, 80);
-  //      breatheOnOff(strip3[i], 10, 20, 20, 40, 80);
-  //    }
-  //    delay(80);
-  //  }
-  for (n= 0; n < num_strands; n++) {
-    CRGB strip = striparray[n]; 
-    Serial.println(n);
-    int curNumLEDs = num_led_array[n];
-    //.println(curNumLEDs);
-    loopThemePerStrand(striparray[n], strip, curNumLEDs);
-  }
 
+  for (n = 0; n < NUM_LEDS; n++) {
+    if (millis() < 4500) {
+      ScaredFlash(strip1[n], 25);
+    }
+    else if (doneBooping == false && millis() >= 6500) {
+      BoopGraph(strip1[n]);
+      //breatheOnOff(strip1[n], 20, 30, 20, 40, 80);
+    }
+
+    else if (millis() > 25000 && strip1[NUM_LEDS - 1].b < 200){
+      strip1[n] += CRGB(0, 0, 5); //Change color to not necessarily pure blue
+    }
+
+    else if (millis() > 30000){
+      strip1[n] = CRGB::Black;
+    }
+  }
+  if (millis() < 4500) {
+    delay(150);
+    Serial.println("flash");
+    float timeSinceLastUpdate = millis();
+  }
+  else if (millis() >= 4500) {
+    delay(80);
+    //Serial.println("breathe");
+  }
   FastLED.show();
-  Serial.println(millis());
 }
 
-void breathe(CRGB& led, int fadeOnRate, int clrR, int clrG, int clrB) {
+void fadeIn(CRGB& led, int fadeOnRate, int clrR, int clrG, int clrB) {
   int onR = map(clrR, 0, 255, 0, fadeOnRate);
   int onG = map(clrG, 0, 255, 0, fadeOnRate);
   int onB = map(clrB, 0, 255, 0, fadeOnRate);
@@ -82,19 +80,21 @@ void breathe(CRGB& led, int fadeOnRate, int clrR, int clrG, int clrB) {
 }
 
 void breatheOnOff(CRGB& led, int fadeOnRate, int fadeOffRate, int clrR, int clrG, int clrB) {
-  int onR = map(clrR, 0, 255, 0, fadeOnRate);
-  int onG = map(clrG, 0, 255, 0, fadeOnRate);
-  int onB = map(clrB, 0, 255, 0, fadeOnRate);
+  int onR = map(clrR, 0, 250, 0, fadeOnRate);
+  int onG = map(clrG, 0, 250, 0, fadeOnRate);
+  int onB = map(clrB, 0, 250, 0, fadeOnRate);
 
-  int offR = map(clrR, 0, 255, 0, fadeOffRate);
-  int offG = map(clrG, 0, 255, 0, fadeOffRate);
-  int offB = map(clrB, 0, 255, 0, fadeOffRate);
+  int offR = map(clrR, 0, 250, 0, fadeOffRate);
+  int offG = map(clrG, 0, 250, 0, fadeOffRate);
+  int offB = map(clrB, 0, 250, 0, fadeOffRate);
 
   if ((led.r + led.g + led.b) == 0) {
     ascent = true;
+
   }
-  if (led.r >= 100 or led.g >= 100 or led.b >= 100) {
+  if (led.r >= 250 or led.g >= 250 or led.b >= 250) {
     ascent = false;
+    flag = true;
   }
 
   if (ascent == true) {
@@ -106,35 +106,38 @@ void breatheOnOff(CRGB& led, int fadeOnRate, int fadeOffRate, int clrR, int clrG
   }
 }
 
-void loopThemePerStrand(CRGB strip, CRGB stripref, int num_leds) {
-//  if (millis() < 7000) {
-//    if (i < num_leds) {
-//      CRGB led = stripref[i];
-//      breathe(led, 20, testColor[0], testColor[1], testColor[2]);
-//      //breathe(strip2[i], 8, testColor[0], testColor[1], testColor[2]);
-//      //breathe(strip3[i], 10, testColor[0], testColor[1], testColor[2]);
-//      //breathe(strip4[i], 20, testColor[0], testColor[1], testColor[2]);
-//
-//      i++;
-//    }
-//    if (i == num_leds) {
-//      i = 0;
-//    }
-//    delay(80);
-    CRGB* fullStrip = &stripref;
-    fadeToBlackBy(fullStrip, num_leds, 60);
-    //fadeToBlackBy(strip2, num_leds, 80);
-    //fadeToBlackBy(strip3, num_leds, 100);
-  //}
+void ScaredFlash(CRGB& led, int rate) {
+  if (led.r > 25) {
+    led = CRGB::Black;
+  }
+  else if (led == CRGB(0, 0, 0)) {
+    led = CRGB::Red;
+  }
+}
 
-  /*else if (millis() > 7000 && millis() < 20000)*/
-  if (millis() < 7000) {
-    for (i = 0; i < num_leds; i++) {
-      CRGB led = stripref[i];
-      breatheOnOff(led, 10, 20, 20, 40, 80);
-      //breatheOnOff(strip2[i], 10, 20, 20, 40, 80);
-      //breatheOnOff(strip3[i], 10, 20, 20, 40, 80);
+void BoopGraph(CRGB& led) {
+  int colorarray[] = {250, 0, 0, 
+                      200, 0, 50, 
+                      150, 0, 100, 
+                      100, 0, 150,
+                      50,  0, 200, 
+                      0,   0, 250};
+  
+  float currentInterval = millis() - timeSinceLastUpdate;
+  if (currentIteration == 6){
+    doneBooping = true; 
+  }
+  
+  if (currentInterval >= 1000){
+      breatheOnOff(led, 40, 40, colorarray[currentIteration * 3], colorarray[currentIteration * 3 + 1], colorarray[currentIteration * 3 + 2]); //change colors to go slowly from red to blue
+  }
+  
+  if (n == (NUM_LEDS - 1)) {
+    if (flag == true && (led.r + led.g + led.b) == 0){
+      timeSinceLastUpdate = millis(); //Reset the delay timer
+      flag = false;
+      Serial.println("Resetting");
+      currentIteration++;
     }
-    //delay(80);
   }
 }
