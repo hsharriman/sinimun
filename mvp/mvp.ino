@@ -113,10 +113,10 @@ void loop() {
       Serial.println("Just spooked");
       scaredFlag = true;
     }
-    //Should only be not scared if the entire boop animation has completed
-    else {
-      scaredFlag = false;
-    }
+//    //Should only be not scared if the entire boop animation has completed
+//    else {
+//      scaredFlag = false;
+//    }
   }
 
 
@@ -174,6 +174,9 @@ void loop() {
           Serial.println("Fade On");
         }
       }
+      else if (ledstrip[NUM_LEDS - 1].b >= 200){
+        scaredFlag = false;
+      }
     }
 
     //Turn off LEDs
@@ -186,8 +189,9 @@ void loop() {
     timeSinceLastUpdate = millis();
   }
   }
+  
   //OPENING UP AND NOT SCARED
-  else{
+  if (!scared){
     if (doneBooping && shutFlag){
       stepper.setSpeedInStepsPerSecond(stepperSpeed);
       stepper.setAccelerationInStepsPerSecondPerSecond(stepperSpeed);
