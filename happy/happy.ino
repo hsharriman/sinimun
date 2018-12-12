@@ -24,15 +24,7 @@ const int ultraPin = 12;
 const int micPin = 13;
 unsigned long desiredChangeRate = 80;
 
-bool scaredFlag = false;
-bool ascent = true;
-
-int x = 0;
-int y = 100;
-int z = 100;
-
 unsigned long timeSinceLastUpdate = 0;
-unsigned long lastTargetTime = 0;
 unsigned long timeSinceLastChange = 0;
 
 unsigned long offTime = 0;
@@ -67,22 +59,6 @@ void loop() {
   bool micVal = digitalRead(micPin);
 
   if ((millis() - timeSinceLastChange) > desiredChangeRate) {
-    for (int i = 0; i < NUM_LEDS; i++) {
-      //SCARED
-      if (ultraVal == 1 && micVal == 1) {
-        terrified(ledstrip[i]);
-      }
-      // TIMID
-      else if (ultraVal == 1 && micVal == 0) {
-        timid(ledstrip[i]);
-      }
-
-      //TRUSTING
-      else if (ultraVal == 0 && micVal == 1) {
-        trusting(ledstrip[i]);
-      }
-    }
-    
     //STOIC
     if (ultraVal == 0 && micVal == 0) {
       Serial.println("STOIC");
@@ -93,56 +69,75 @@ void loop() {
           remainingInt[i] = fadingInt[i];
         }
       }
-      timeSinceLastChange = millis();
     }
-  }
-    FastLED.show();
-  }
-
-  void terrified(CRGB & led) {
-    //Makes the wisp quickly flash red, might go well with the shivering of terrified
-    int bright = random8(100);
-    int brightG = random8(80);
-
-    int valR = dim8_raw(random(100, 200));
-    //Uncomment for orange flashes
-    int valG = dim8_raw(random(0, 80));
-
-    led.r = scale8(valR, bright);
-    led.g = 0; //scale8(valG, bright);  //uncomment for the orange flashes
-    led.b = 0;
-
-  }
-
-  void trusting(CRGB & led) {
-    //Makes the wisp "sparkle" with random RGB colors, might go well with the shivering of terrified
-    int brightR = random8(150);
-    int brightG = random8(150);
-    int brightB = random8(150);
-
-
-    int valR = dim8_raw(random8(150));
-    int valG = dim8_raw(random8(100));
-    int valB = dim8_raw(random8(255));
-
-    led.r = scale8(valR, brightR);
-    led.g = scale8(valG, brightG);
-    led.b = scale8(valB, brightB);
-  }
-
-  void scaredFlash(CRGB & led) {
-    if (led.r > 25) {
-      led = CRGB::Black;
+    else {
+      for (int i = 0; i < NUM_LEDS; i++) {
+        Serial.println("SCARED");
+        if (ultraVal == 1 && micVal == 1) {
+          terrified(ledstrip[i]);
+        }
+        else if (ultraVal == 1 && micVal == 0) {
+          Serial.println("TIMID");
+          timid(ledstrip[i]);
+        }
+        else if (ultraVal == 0 && micVal == 1) {
+          Serial.println("TRUSTING");
+          trusting(ledstrip[i]);
+        }
+        else{
+          ledstrip[i].setRGB(0,100,0);
+        }
+      }
     }
-    else if (led == CRGB(0, 0, 0)) {
-      led = CRGB::Red;
-    }
+    timeSinceLastChange = millis();
   }
+  FastLED.show();
+}
 
-  void timid(CRGB & led) {
-    float bright = dim8_raw((exp(sin(millis() / 2000.0 * PI)) - 0.36787944) * 108.0);
-    led.b = scale8(150, bright);
-    led.g = 50;
-    led.r = 0;
+void terrified(CRGB & led) {
+  //Makes the wisp quickly flash red, might go well with the shivering of terrified
+  int bright = random8(100);
+  int brightG = random8(80);
+
+  int valR = dim8_raw(random(100, 200));
+  //Uncomment for orange flashes
+  int valG = dim8_raw(random(0, 80));
+
+  led.r = scale8(valR, bright);
+  led.g = 0; //scale8(valG, bright);  //uncomment for the orange flashes
+  led.b = 0;
+
+}
+
+void trusting(CRGB & led) {
+  //Makes the wisp "sparkle" with random RGB colors, might go well with the shivering of terrified
+  int brightR = random8(150);
+  int brightG = random8(150);
+  int brightB = random8(150);
+
+
+  int valR = dim8_raw(random8(150));
+  int valG = dim8_raw(random8(100));
+  int valB = dim8_raw(random8(255));
+
+  led.r = scale8(valR, brightR);
+  led.g = scale8(valG, brightG);
+  led.b = scale8(valB, brightB);
+}
+
+void scaredFlash(CRGB & led) {
+  if (led.r > 25) {
+    led = CRGB::Black;
   }
+  else if (led == CRGB(0, 0, 0)) {
+    led = CRGB::Red;
+  }
+}
+
+void timid(CRGB & led) {
+  float bright = dim8_raw((exp(sin(millis() / 2000.0 * PI)) - 0.36787944) * 108.0);
+  led.b = scale8(150, bright);
+  led.g = 50;
+  led.r = 0;
+}
 
