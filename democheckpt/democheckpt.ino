@@ -12,7 +12,7 @@
 
 //Define number of LEDs in overall strip
 #define NUM_LEDS (NUM_LEDS_PART_1 + NUM_LEDS_PART_2 + NUM_LEDS_PART_3 + NUM_LEDS_PART_4 + NUM_LEDS_PART_5 + NUM_LEDS_PART_6 + NUM_LEDS_PART_7 + NUM_LEDS_BOT)
-#define BRIGHTNESS      150
+#define BRIGHTNESS      80
 
 //Define strip object
 CRGB ledstrip[NUM_LEDS];

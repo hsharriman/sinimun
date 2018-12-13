@@ -1,9 +1,9 @@
 #include <SpeedyStepper.h>
 
-const int MOTOR_STEP_PIN = 8;
-const int MOTOR_DIRECTION_PIN = 9;
-const int stepperSpeed = 50 * 16;
-const int max_steps = 100 * 16;
+const int MOTOR_STEP_PIN = 9;
+const int MOTOR_DIRECTION_PIN = 8;
+const int stepperSpeed = 100 * 16;
+const int maxSteps = 25 * 16;
 const int trigPin = 11;
 const int echoPin = 10;
 const int ultraPin = 12;
@@ -18,7 +18,7 @@ float distance, vel;
 unsigned long lastVT;
 int dT = 100;
 long lastDist = 0;
-int currentSteps = 0;
+
 bool scaredFlag = false;
 bool timTrig = false;
 bool trustTrig = false;
@@ -31,6 +31,13 @@ unsigned long scaredInt = 3000;
 unsigned long timidTime;
 unsigned long timidInt = 10000;
 
+//motor variables
+int currentSteps = maxSteps;
+bool openFlag = true;
+bool closedFlag = false;
+bool peeked = false;
+unsigned long peekTime;
+unsigned long peekInt = 4000;
 SpeedyStepper stepper;
 
 
@@ -51,6 +58,18 @@ void loop()
 {
   stepper.setSpeedInStepsPerSecond(stepperSpeed);
   stepper.setAccelerationInStepsPerSecondPerSecond(stepperSpeed);
+  if (currentSteps >= maxSteps) {
+    openFlag = true;
+    closedFlag = false;
+  }
+  if (currentSteps <= 0) {
+    closedFlag = true;
+    openFlag = false;
+  }
+  if (currentSteps > 0 && currentSteps < maxSteps) {
+    openFlag = false;
+    closedFlag = false;
+  }
 
   //Collect distance sensor data
   if (millis() - lastVT >= dT) {
@@ -79,7 +98,14 @@ void loop()
     digitalWrite(micPin, LOW);
     timTrig = false;
     trustTrig = false;
-    //stepper.moveRelativeInSteps(100 * 16); /// TODO
+    if (!openFlag) {
+      Serial.println("MOTOR OPENING");
+      stepper.moveToPositionInSteps(maxSteps - currentSteps);
+      if (stepper.motionComplete()) {
+        currentSteps += (maxSteps - currentSteps);
+        Serial.println(currentSteps);
+      }
+    }
   }
 
   //TIMID
@@ -87,12 +113,21 @@ void loop()
     timidTime = millis();
     timTrig = false;
   }
- //TRUSTING:
+  //TRUSTING:
   if (trustTrig == true && millis() - timidTime > timidInt) {
     Serial.println("TRUSTING");
     digitalWrite(ultraPin, LOW);
     digitalWrite(micPin, HIGH);
     timTrig = false;
+    int trustInt = 10 * 16;
+    if (currentSteps + trustInt <= maxSteps && !openFlag) {
+      Serial.println("TRUSTING, OPEN 75%");
+      stepper.moveToPositionInSteps(currentSteps + trustInt);
+      if (stepper.motionComplete()) {
+        currentSteps += trustInt;
+        Serial.println(currentSteps);
+      }
+    }
   }
   //TIMID
   if (millis() - timidTime < timidInt) {
@@ -101,6 +136,35 @@ void loop()
       digitalWrite(ultraPin, HIGH);
       digitalWrite(micPin, LOW);
       trustTrig = true;
+      if (currentSteps + 10 * 16 <= maxSteps && !openFlag) {
+        if (peeked == false) {
+          peekTime = millis();
+          if (millis() - peekTime < peekInt) {
+            Serial.println("PEEKING, OPENING");
+            stepper.setSpeedInStepsPerSecond(50 * 16 && !openFlag && !closedFlag);
+            stepper.setAccelerationInStepsPerSecondPerSecond(50 * 16);
+            stepper.moveToPositionInSteps(currentSteps + 10 * 16);
+            if (stepper.motionComplete()) {
+              currentSteps += 10 * 16;
+              Serial.println(currentSteps);
+              peeked = true;
+            }
+          }
+
+        }
+        if (millis() - peekTime >= peekInt) { //TODO NEEDS DELAY
+          if (peeked) {
+            stepper.moveToPositionInSteps(currentSteps - (10 * 16));
+            if (stepper.motionComplete()) {
+              Serial.println("SHY, CLOSING");
+              currentSteps += -(10 * 16);
+              Serial.println(currentSteps);
+              peeked = false;
+              peekTime = millis();
+            }
+          }
+        }
+      }
     }
   }
 
@@ -111,9 +175,15 @@ void loop()
     digitalWrite(ultraPin, HIGH);
     digitalWrite(micPin, HIGH);
     timeSinceScare = millis();
-    stepper.moveRelativeInSteps(100 * 16);   ///TODO
-    stepper.moveRelativeInSteps(-100 * 16); ///TODO
-    Serial.println("motors done");
+    if (!closedFlag) {
+      Serial.println("motor CLOSING");
+      stepper.moveToPositionInSteps(-maxSteps); ///TODO
+      if (stepper.motionComplete()) {
+        currentSteps += -maxSteps;
+        Serial.println(currentSteps);
+      }
+    }
+    delay(5000);
     timTrig = true;
     trustTrig = false;
   }
